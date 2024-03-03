@@ -1,0 +1,130 @@
+// ==UserScript==
+// @name         Tribal Wars Resource Buyer
+// @namespace    http://tampermonkey.net/
+// @version      1.2.1
+// @description  Automate buying resources in Tribal Wars
+// @author       ricardofauch
+// @include      https://tr85.klanlar.org/game.php*screen=market*
+// @license      MIT
+// @downloadURL https://update.greasyfork.org/scripts/484390/Tribal%20Wars%20Resource%20Buyer.user.js
+// @updateURL https://update.greasyfork.org/scripts/484390/Tribal%20Wars%20Resource%20Buyer.meta.js
+// ==/UserScript==
+
+(function() {
+    'use strict';
+
+    let isReloadNeeded = false;
+
+    function checkForUsageWarningAndReload() {
+        const warningText = "Şu anda Premium Takasını çok yoğun kullanıyor gibi görünüyorsunuz. Lütfen kısa bir süre sonra tekrar deneyin."
+        const pageText = document.body.textContent || document.body.innerText;
+        if (pageText.includes(warningText)) {
+            console.log("Usage warning detected. Reloading page.");
+            window.location.reload();
+        }
+    }
+
+    function checkForErrorAndReload() {
+        const errorImageSrc = 'https://dsde.innogamescdn.com/asset/525cce89/graphic/error.png';
+        const errorImages = document.querySelectorAll(`img[src="${errorImageSrc}"]`);
+
+        if (errorImages.length > 0) {
+            //console.log("Error detected ('Kein ausreichender Vorrat im Depot'). Reloading page.");
+            window.location.reload();
+        }
+    }
+
+    function clickBuyButton() {
+        const buyButton = document.querySelector('.btn-premium-exchange-buy');
+        if (buyButton) {
+            //console.log("Clicking the 'Bestes Angebot berechnen' button.");
+            buyButton.click();
+        } else {
+            //console.log("'Bestes Angebot berechnen' button not found.");
+        }
+    }
+
+    function clickConfirmButton() {
+        let counter = 0;
+        const checkDialog = setInterval(function() {
+            const confirmDialog = document.querySelector('.confirmation-box');
+            if (confirmDialog && confirmDialog.style.display !== 'none') {
+                clearInterval(checkDialog);
+                //console.log("Confirmation dialog detected.");
+
+                const confirmButton = document.querySelector('.btn-confirm-yes');
+                if (confirmButton) {
+                    //console.log("Clicking the 'Bestätigen' button.");
+                    confirmButton.click();
+                    const randomIntervalReload = Math.random() * (65 - 50) + 5000;
+                    setTimeout(function(){window.location.reload();}, randomIntervalReload)
+
+                } else {
+                    //console.log("'Bestätigen' button not found.");
+
+                    window.location.reload();
+
+
+
+                }
+            }
+        }, 20);
+    }
+
+    function checkAndBuyResources() {
+        checkForUsageWarningAndReload(); // Check for the warning before executing main logic
+        // checkForErrorAndReload();
+        console.log("ckecking...")
+        //if (isReloadNeeded) {
+            //console.log("Reloading the page for fresh data...");
+            //window.location.reload();
+        //}
+
+        const purchasePercentage = 0.7; // 50% for example
+        const resources = ['wood', 'stone', 'iron'];
+        //const resources = ['iron'];
+        let anyResourceAvailable = false;
+
+        for (let i = 0; i < resources.length; i++) {
+            const resource = resources[i];
+            const stock = parseInt(document.getElementById(`premium_exchange_stock_${resource}`).innerText, 10);
+            console.log(`Current stock for ${resource}: ${stock}`);
+
+            if (stock > 40) {
+                anyResourceAvailable = true;
+                const amountToBuy = Math.floor(stock * purchasePercentage);
+                console.log(`Calculated amount to buy for ${resource}: ${amountToBuy}`);
+
+                const buyInputField = document.querySelector(`input[name="buy_${resource}"]`);
+                if (buyInputField) {
+                    buyInputField.value = amountToBuy;
+                    console.log(`Set value for ${resource}: ${amountToBuy}`);
+                    isReloadNeeded = false;
+                    const randomIntervalBuy = Math.random() * (102 - 50) + 50;
+                    setTimeout(function(){clickBuyButton();}, randomIntervalBuy)
+                    const randomIntervalConfirm = Math.random() * (65 - 50) + 50;
+                    setTimeout(function(){clickConfirmButton();}, randomIntervalConfirm)
+                    break; // Exit the loop as we've found a resource to buy
+                } else {
+                    console.log(`Input field for buying ${resource} not found.`);
+                }
+            }
+        }
+
+        isReloadNeeded = !anyResourceAvailable; // Set the flag based on resource availability
+        //console.log("Check if reload needed2", isReloadNeeded)
+        if (isReloadNeeded) {
+            //console.log("Reloading the page for fresh data...");
+            const randomInterval = Math.random() * (10000) + 20000;
+            setTimeout(function(){window.location.reload();
+                                 }, randomInterval);
+        }
+    }
+    const randomIntervalCheck = Math.random() * (180 - 50) + 50;
+    setTimeout(function(){checkAndBuyResources();}, randomIntervalCheck)
+    setInterval(function() {
+        //console.log("Reloading page every 20 seconds.");
+        window.location.reload();
+    }, Math.random() * 3000 + 5000);
+
+})();
